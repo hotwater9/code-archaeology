@@ -1,7 +1,13 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 *.js.map
+
+# Environment
 .env
+.env.*
 
 # Python
 __pycache__/
@@ -10,9 +16,17 @@ __pycache__/
 .venv/
 venv/
 build/
-dist/
 
 # IDE
 .idea/
 .vscode/
 *.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Project internals
+.git/
+.omc/

@@ -3,9 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+import sys
+import io
+
 from rich.console import Console
 
 from ..types import ArchaeologyResult, TimelineEntry
+
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 console = Console()
 
@@ -67,3 +73,28 @@ def _get_time_span(first: Optional[datetime], last: Optional[datetime]) -> str:
     years = months // 12
     rem = months % 12
     return f"{years} 年 {rem} 个月" if rem else f"{years} 年"
+
+
+def format_hotspots(dir_path: str, hotspots) -> None:
+    console.print()
+    console.print(f"[bold cyan]🔥 {dir_path} — 热点文件地图[/]")
+    console.print()
+
+    if not hotspots:
+        console.print("  [dim]No git history found for this directory.[/]")
+        return
+
+    for hotspot in hotspots[:20]:
+        bar = "█" * min(20, hotspot.commit_count)
+        console.print(
+            f"[white]{hotspot.file:<50}[/] "
+            f"[yellow]{bar}[/] "
+            f"[dim]{hotspot.commit_count} commits, {len(hotspot.contributors)} contributors[/]"
+        )
+
+    console.print()
+    console.print(
+        f"[bold green]📊 总计：{len(hotspots)} 个文件, "
+        f"最高 {hotspots[0].commit_count if hotspots else 0} 次修改[/]"
+    )
+    console.print()

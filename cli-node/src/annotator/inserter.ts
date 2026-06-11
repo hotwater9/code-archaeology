@@ -3,6 +3,10 @@ import { ArchaeologyResult, AnnotationOptions } from '../types.js';
 import { getLanguageConfig, wrapComment } from './comment-style.js';
 import { generateAnnotation } from './templates.js';
 
+/**
+ * 在目标文件的指定行上方插入考古注释。
+ * 自动检测语言、匹配缩进、生成对应风格的注释块。
+ */
 export function insertAnnotation(
   filePath: string,
   result: ArchaeologyResult,
@@ -24,6 +28,7 @@ export function insertAnnotation(
     return { success: false, message: `Invalid line range: ${result.startLine}` };
   }
 
+  // 匹配插入位置的缩进，保持代码风格一致
   const indent = getIndentation(lines[insertAt] || '');
   const indentedComment = comment
     .split('\n')
@@ -39,6 +44,9 @@ export function insertAnnotation(
   };
 }
 
+/**
+ * 插入任意文本注释（供 skill 层调用，AI 生成的内容走此入口）。
+ */
 export function insertRawComment(
   filePath: string,
   line: number,

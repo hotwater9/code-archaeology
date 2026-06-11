@@ -1,5 +1,7 @@
 # Code Archaeology
 
+English | [中文](./README_CN.md)
+
 Trace the evolution of any code segment — who changed it, why, and when.
 
 Two layers:
