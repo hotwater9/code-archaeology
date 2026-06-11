@@ -1,0 +1,28 @@
+{
+  "name": "code-archaeology",
+  "version": "0.1.0",
+  "description": "Trace the evolution of any code segment",
+  "type": "module",
+  "bin": {
+    "code-dig": "./dist/bin/code-dig.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/bin/code-dig.js"
+  },
+  "keywords": ["git", "archaeology", "code-history", "blame", "annotation"],
+  "author": "zheng.wang",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "inquirer": "^9.2.12",
+    "simple-git": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

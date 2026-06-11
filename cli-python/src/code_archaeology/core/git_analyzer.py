@@ -1,0 +1,119 @@
+from __future__ import annotations
+
+import re
+import subprocess
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
+from ..types import CommitInfo, BlameEntry
+
+
+class GitAnalyzer:
+    def __init__(self, repo_path: str = "."):
+        self.repo_path = Path(repo_path).resolve()
+
+    def is_git_repo(self) -> bool:
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                cwd=self.repo_path, capture_output=True, check=True,
+            )
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+    def get_line_history(self, file: str, start_line: int, end_line: int) -> list[CommitInfo]:
+        result = subprocess.run(
+            ["git", "log", f"--pretty=format:%H|%h|%an|%aI|%s",
+             "-L", f"{start_line},{end_line}:{file}"],
+            cwd=self.repo_path, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            return []
+
+        commits: list[CommitInfo] = []
+        seen: set[str] = set()
+
+        for line in result.stdout.split("\n"):
+            if "|" not in line:
+                continue
+            parts = line.split("|", 4)
+            if len(parts) < 5:
+                continue
+            hash_, short_hash, author, date_str, message = parts
+            if hash_ in seen:
+                continue
+            seen.add(hash_)
+
+            stats = self._get_commit_stats(hash_)
+            commits.append(CommitInfo(
+                hash=hash_,
+                short_hash=short_hash,
+                author=author,
+                date=datetime.fromisoformat(date_str),
+                message=message,
+                **stats,
+            ))
+
+        commits.sort(key=lambda c: c.date, reverse=True)
+        return commits
+
+    def get_blame(self, file: str, start_line: int, end_line: int) -> list[BlameEntry]:
+        result = subprocess.run(
+            ["git", "blame", "-L", f"{start_line},{end_line}", "--porcelain", file],
+            cwd=self.repo_path, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            return []
+        return self._parse_porcelain_blame(result.stdout)
+
+    def _get_commit_stats(self, hash_: str) -> dict:
+        result = subprocess.run(
+            ["git", "diff-tree", "--shortstat", "--no-commit-id", hash_],
+            cwd=self.repo_path, capture_output=True, text=True,
+        )
+        match = re.search(
+            r"(\d+) files? changed(?:, (\d+) insertions?)?(?:, (\d+) deletions?)?",
+            result.stdout,
+        )
+        if not match:
+            return {"files_changed": 0, "insertions": 0, "deletions": 0}
+        return {
+            "files_changed": int(match.group(1) or 0),
+            "insertions": int(match.group(2) or 0),
+            "deletions": int(match.group(3) or 0),
+        }
+
+    def _parse_porcelain_blame(self, raw: str) -> list[BlameEntry]:
+        entries: list[BlameEntry] = []
+        lines = raw.split("\n")
+        i = 0
+
+        while i < len(lines):
+            header = re.match(r"^([a-f0-9]{40}) \d+ (\d+)", lines[i])
+            if not header:
+                i += 1
+                continue
+
+            hash_ = header.group(1)
+            line_num = int(header.group(2))
+            author = ""
+            timestamp = 0
+            i += 1
+
+            while i < len(lines) and not lines[i].startswith("\t"):
+                if lines[i].startswith("author "):
+                    author = lines[i][7:]
+                if lines[i].startswith("author-time "):
+                    timestamp = int(lines[i][12:])
+                i += 1
+
+            content = lines[i][1:] if i < len(lines) else ""
+            entries.append(BlameEntry(
+                line=line_num, hash=hash_, author=author,
+                date=datetime.fromtimestamp(timestamp), content=content,
+            ))
+            i += 1
+
+        return entries

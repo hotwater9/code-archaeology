@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.js.map
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
